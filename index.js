@@ -4,6 +4,9 @@ const INDEX_URL = BASE_URL + "/api/v1/movies/"
 const POSTER_URL = BASE_URL + "/posters/"
 const movies = []
 const data_panel = document.querySelector("#data-panel")
+const layoutIcons = document.querySelector("#layout-icons");
+const cardLayoutIcon = document.querySelector("#card-layout");
+const listLayoutIcon = document.querySelector("#list-layout");
 const search_form = document.querySelector("#search-form")
 const search_input = document.querySelector("#search-input")
 let currentPage = 1;
@@ -25,27 +28,55 @@ axios.get(INDEX_URL).then((response) => {
 // Functions
 // Function: Render movie list
 function renderMovieList(data) {
-  let rawHTML = ''
+  if (data_panel.dataset.layout === "card-layout") {
+    displayCardLayout(data);
+  } else if (data_panel.dataset.layout === "list-layout") {
+    displayListLayout(data);
+  }
+}
+//function: display card layout
+function displayCardLayout(data) {
+  let rawHTML = "";
   data.forEach((item) => {
     //title, image
-    console.log(item)
     rawHTML += `<div class="col-sm-3">
     <div class="mb-2">
       <div class="card">
-        <img src="${POSTER_URL + item.image}" class="card-img-top" alt="Movie Poster">
+        <img src="${POSTER_URL + item.image
+      }" class="card-img-top" alt="Movie Poster">
         <div class="card-body">
           <h5 class="card-title">${item.title}</h5>
         </div>
         <div class="card-footer">
-          <button class="btn btn-primary btn-show-movie" data-bs-toggle="modal" data-bs-target="#movie-modal" data-id="${item.id}"> More </button>
-          <button class="btn btn-info btn-add-favorite" data-id="${item.id}">+</button>
+          <button class="btn btn-primary btn-show-movie" data-bs-toggle="modal" data-bs-target="#movie-modal" data-id="${item.id
+      }"> More </button>
+          <button class="btn btn-info btn-add-favorite" id="btn-add-favorite" data-id="${item.id
+      }">+</button>
           
         </div>
       </div>
     </div>
-  </div>`
+  </div>`;
   });
-  data_panel.innerHTML = rawHTML
+
+  data_panel.innerHTML = rawHTML;
+}
+//function: display list layout
+function displayListLayout(data) {
+  let rawHTML =
+    '<table class="table" id="movie-table"><thead><tr><th class="col-md-8" scope="col">Movie Title</th><th class="col-md-4" scope="col"></th></tr></thead><tbody>';
+  data.forEach((item) => {
+    rawHTML += `
+      <tr>
+        <th class="fs-5" scope="row">${item.title}</th>
+        <td class="d-flex justify-content-end"><button class="btn btn-primary btn-show-movie me-2" data-bs-toggle="modal" data-bs-target="#movie-modal" data-id="${item.id}"> More </button>
+          <button class="btn btn-info btn-add-favorite me-3" id="btn-add-favorite" data-id="${item.id}">+</button>
+        </td>
+      </tr>
+      `;
+  });
+  rawHTML += "</tbody></table>";
+  data_panel.innerHTML = rawHTML;
 }
 // Function: add favorite movie to list and save in localstorage
 function addToMovie(id) {
@@ -56,6 +87,21 @@ function addToMovie(id) {
   }
   list.push(movie)
   localStorage.setItem('favoriteMovies', JSON.stringify(list))
+}
+//Function: remove movie from favorite list
+function removeFromFavorite(id) {
+  let list = JSON.parse(localStorage.getItem("favoriteMovies")) || [];
+  //一旦傳入的 id 在收藏清單中不存在，或收藏清單是空的，就結束這個函式
+  if (!list || !list.length) return;
+  //透過 id 找到要刪除電影的 index
+  const movieIndex = list.findIndex((movie) => movie.id === id);
+  if (movieIndex === -1) return;
+  //刪除該筆電影
+  list.splice(movieIndex, 1);
+  //存回 local storage
+  localStorage.setItem("favoriteMovies", JSON.stringify(list));
+  //更新頁面(only in favorite list)
+  // renderMovieList(getMoviesByPage(currentPage));
 }
 // Function: show movie modal
 function showMovieModal(id) {
@@ -99,14 +145,36 @@ function renderPaginator(amount) {
   document.querySelector('[data-page="1"]').parentElement.classList.add("active");
 }
 // Event Listeners
+//Listen to layout icons
+layoutIcons.addEventListener("click", function (event) {
+  if (event.target.matches("#list-layout")) {
+    data_panel.dataset.layout = "list-layout";
+    listLayoutIcon.style.color = "blue";
+    cardLayoutIcon.style.color = "";
+    renderMovieList(getMoviesByPage(currentPage));
+  } else if (event.target.matches("#card-layout")) {
+    data_panel.dataset.layout = "card-layout";
+    cardLayoutIcon.style.color = "blue";
+    listLayoutIcon.style.color = "";
+    renderMovieList(getMoviesByPage(currentPage));
+  }
+});
 // Listen to data panel
 data_panel.addEventListener("click", function (event) {
+  console.log(event.target);
+  let list = JSON.parse(localStorage.getItem("favoriteMovies")) || [];
   if (event.target.matches(".btn-show-movie")) {
-    showMovieModal(Number(event.target.dataset.id))
-  } else if (event.target.matches(".btn-add-favorite")) {
-    addToMovie(Number(event.target.dataset.id))
+    showMovieModal(Number(event.target.dataset.id));
+  } else if (event.target.matches(".switch-add-btn")) {
+    removeFromFavorite(Number(event.target.dataset.id));
+    event.target.innerText = "+";
+    event.target.classList.toggle("switch-add-btn");
+  } else if (event.target.matches("#btn-add-favorite")) {
+    addToMovie(Number(event.target.dataset.id));
+    event.target.innerHTML = "-";
+    event.target.classList.toggle("switch-add-btn");
   }
-})
+});
 // Listen to paginator
 paginator.addEventListener("click", function onPaginatorClicked(event) {
   //如果被點擊的不是 a 標籤，結束
