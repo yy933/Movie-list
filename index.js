@@ -1,19 +1,35 @@
-
+// Variable declaration
 const BASE_URL = "https://movie-list.alphacamp.io"
 const INDEX_URL = BASE_URL + "/api/v1/movies/"
 const POSTER_URL = BASE_URL + "/posters/"
-
 const movies = []
-let filteredMovies = []
-
-
 const data_panel = document.querySelector("#data-panel")
-function renderMovieList(data){
- let rawHTML = ''
-data.forEach((item) => {
-  //title, image
-  console.log(item)
-  rawHTML += `<div class="col-sm-3">
+const search_form = document.querySelector("#search-form")
+const search_input = document.querySelector("#search-input")
+let currentPage = 1;
+let filteredMovies = [];
+const MOVIES_PER_PAGE = 12;
+const paginator = document.querySelector("#paginator")
+let numberOfPages;
+// get data from API using axios 
+axios.get(INDEX_URL).then((response) => {
+  //array(80)
+  console.log(response.data.results)
+  movies.push(...response.data.results)
+  renderMovieList(movies)
+  renderPaginator(movies.length)
+  renderMovieList(getMoviesByPage(1))
+}).catch((error) => {
+  console.log(error)
+})
+// Functions
+// Function: Render movie list
+function renderMovieList(data) {
+  let rawHTML = ''
+  data.forEach((item) => {
+    //title, image
+    console.log(item)
+    rawHTML += `<div class="col-sm-3">
     <div class="mb-2">
       <div class="card">
         <img src="${POSTER_URL + item.image}" class="card-img-top" alt="Movie Poster">
@@ -28,24 +44,11 @@ data.forEach((item) => {
       </div>
     </div>
   </div>`
-
-});
- 
- data_panel.innerHTML = rawHTML
+  });
+  data_panel.innerHTML = rawHTML
 }
-
-data_panel.addEventListener("click", function(event){
-  if (event.target.matches(".btn-show-movie")){
-    showMovieModal(Number(event.target.dataset.id))
-  } else if (event.target.matches(".btn-add-favorite")){
-    addToMovie(Number(event.target.dataset.id))
-  }
-  
-})
-
-
-function addToMovie(id){
-  // console.log(id)
+// Function: add favorite movie to list and save in localstorage
+function addToMovie(id) {
   const list = JSON.parse(localStorage.getItem('favoriteMovies')) || []
   const movie = movies.find((movie) => movie.id === id)
   if (list.some((movie) => movie.id === id)) {
@@ -53,8 +56,8 @@ function addToMovie(id){
   }
   list.push(movie)
   localStorage.setItem('favoriteMovies', JSON.stringify(list))
-
 }
+// Function: show movie modal
 function showMovieModal(id) {
   const modalTitle = document.querySelector('#movie-modal-title')
   const modalImage = document.querySelector('#movie-modal-image')
@@ -73,70 +76,61 @@ function showMovieModal(id) {
       }" alt="movie-poster" class="img-fluid">`
   })
 }
-const MOVIES_PER_PAGE = 12
-function getMoviesByPage(page){
-   const data = filteredMovies.length ? filteredMovies : movies 
+// Function: slice movies
+function getMoviesByPage(page) {
+  const data = filteredMovies.length ? filteredMovies : movies
   //page1 -> 0-11
   //page2 -> 12-23
   //page3 -> 24-35
-  const startIndex = (page-1) * MOVIES_PER_PAGE
+  const startIndex = (page - 1) * MOVIES_PER_PAGE
   return data.slice(startIndex, startIndex + MOVIES_PER_PAGE)
 }
-const paginator = document.querySelector("#paginator")
-
-function renderPaginator(amount){
- const numberOfPages = Math.ceil(amount / MOVIES_PER_PAGE)
- let rawHTML = ''
- for (let page = 1; page<= numberOfPages; page++){
-  rawHTML += `
+// Function: render paginator
+function renderPaginator(amount) {
+  numberOfPages = Math.ceil(amount / MOVIES_PER_PAGE)
+  let rawHTML =
+    '<li class="page-item"><a class="page-link" href="#" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>';
+  for (let page = 1; page <= numberOfPages; page++) {
+    rawHTML += `
   <li class="page-item"><a class="page-link" href="#" data-page="${page}">${page}</a></li>
-  `
- }
-  paginator.innerHTML = rawHTML
+  `;
+  }
+  rawHTML +=
+    '<li class="page-item"><a class="page-link" href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a></li>';
+  paginator.innerHTML = rawHTML;
+  document.querySelector('[data-page="1"]').parentElement.classList.add("active");
 }
-
+// Event Listeners
+// Listen to data panel
+data_panel.addEventListener("click", function (event) {
+  if (event.target.matches(".btn-show-movie")) {
+    showMovieModal(Number(event.target.dataset.id))
+  } else if (event.target.matches(".btn-add-favorite")) {
+    addToMovie(Number(event.target.dataset.id))
+  }
+})
+// Listen to paginator
 paginator.addEventListener("click", function onPaginatorClicked(event) {
   //如果被點擊的不是 a 標籤，結束
   if (event.target.tagName !== 'A') return
-
   //透過 dataset 取得被點擊的頁數
   const page = Number(event.target.dataset.page)
   //更新畫面
   renderMovieList(getMoviesByPage(page))
 })
-
-
-const search_form = document.querySelector("#search-form")
-const search_input = document.querySelector("#search-input")
-
-search_form.addEventListener("submit", function onsearchFormSubmitted(event){
+// Listen to search form
+search_form.addEventListener("submit", function onsearchFormSubmitted(event) {
   event.preventDefault()
   const keyword = search_input.value.trim().toLowerCase()
- 
-  if (!keyword.length){
+  if (!keyword.length) {
     return
   }
-    filteredMovies = movies.filter(function filterMovie(movie){
-      return movie.title.toLowerCase().includes(keyword)
-})
+  filteredMovies = movies.filter(function filterMovie(movie) {
+    return movie.title.toLowerCase().includes(keyword)
+  })
   if (filteredMovies.length === 0) {
     return alert(`There is no movie with your keyword: ${keyword} `)
   }
   renderPaginator(filteredMovies.length)
   renderMovieList(getMoviesByPage(1))
 })
-
-axios
-  .get(INDEX_URL)
-  .then((response) => {
-    //array(80)
-    console.log(response.data.results)
-    movies.push(...response.data.results)
-    renderMovieList(movies)
-    renderPaginator(movies.length)
-    renderMovieList(getMoviesByPage(1))
-  })
-  .catch((error) => {
-    console.log(error)
-
-  })
