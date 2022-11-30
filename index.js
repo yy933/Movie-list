@@ -18,7 +18,7 @@ axios.get(INDEX_URL).then((response) => {
   movies.push(...response.data.results)
   renderMovieList(movies)
   renderPaginator(movies.length)
-  renderMovieList(getMoviesByPage(1))
+  renderMovieList(getMoviesByPage(currentPage))
 }).catch((error) => {
   console.log(error)
 })
@@ -88,15 +88,13 @@ function getMoviesByPage(page) {
 // Function: render paginator
 function renderPaginator(amount) {
   numberOfPages = Math.ceil(amount / MOVIES_PER_PAGE)
-  let rawHTML =
-    '<li class="page-item"><a class="page-link" href="#" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>';
+  let rawHTML = '<li class="page-item"><a class="page-link" href="#" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>';
   for (let page = 1; page <= numberOfPages; page++) {
     rawHTML += `
   <li class="page-item"><a class="page-link" href="#" data-page="${page}">${page}</a></li>
   `;
   }
-  rawHTML +=
-    '<li class="page-item"><a class="page-link" href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a></li>';
+  rawHTML += '<li class="page-item"><a class="page-link" href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a></li>';
   paginator.innerHTML = rawHTML;
   document.querySelector('[data-page="1"]').parentElement.classList.add("active");
 }
@@ -112,25 +110,50 @@ data_panel.addEventListener("click", function (event) {
 // Listen to paginator
 paginator.addEventListener("click", function onPaginatorClicked(event) {
   //如果被點擊的不是 a 標籤，結束
-  if (event.target.tagName !== 'A') return
+  if (event.target.tagName !== 'A') return;
+  //active status
+  let activePage = document.querySelectorAll(".active");
+  if (activePage) {
+    activePage.forEach((item) => {
+      item.classList.remove("active");
+    });
+  }
   //透過 dataset 取得被點擊的頁數
   const page = Number(event.target.dataset.page)
+  if (event.target.ariaLabel !== "Previous" && event.target.ariaLabel !== "Next"){
+    currentPage = page
+    event.target.parentElement.classList.add("active");
+  } else if (event.target.ariaLabel === "Previous") {
+    currentPage -= 1;
+    if (currentPage < 1) {
+      currentPage = 1;
+    }
+  } else if (event.target.ariaLabel === "Next") {
+    currentPage += 1;
+    if (currentPage > numberOfPages) {
+      currentPage = numberOfPages;
+    }
+  } 
   //更新畫面
-  renderMovieList(getMoviesByPage(page))
+  renderMovieList(getMoviesByPage(currentPage))
 })
 // Listen to search form
 search_form.addEventListener("submit", function onsearchFormSubmitted(event) {
   event.preventDefault()
   const keyword = search_input.value.trim().toLowerCase()
   if (!keyword.length) {
-    return
+    currentPage = 1;
+    filteredMovies.length = 0;
+    renderPaginator(movies.length);
+    renderMovieList(getMoviesByPage(currentPage));
   }
   filteredMovies = movies.filter(function filterMovie(movie) {
     return movie.title.toLowerCase().includes(keyword)
-  })
+  });
   if (filteredMovies.length === 0) {
     return alert(`There is no movie with your keyword: ${keyword} `)
   }
+  currentPage = 1;
   renderPaginator(filteredMovies.length)
-  renderMovieList(getMoviesByPage(1))
-})
+  renderMovieList(getMoviesByPage(currentPage))
+});
