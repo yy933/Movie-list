@@ -1,0 +1,32 @@
+.layout-icons {
+  cursor: pointer;
+}
+
+.layout-icons:hover {
+  color: blue;
+}
+
+.switch-add-btn {
+  background-color: coral;
+  border: coral;
+}
+
+.btn-add-favorite:hover {
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  background-color: coral;
+  border: coral;
+}
+
+.switch-add-btn:hover {
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  background-color: #0dcaf0;
+  border: #0dcaf0;
+}
+
+li.disabled {
+  cursor: not-allowed;
+}
+
+li.disabled a {
+  pointer-events: none;
+}
